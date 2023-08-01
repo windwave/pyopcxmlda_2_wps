@@ -350,3 +350,6 @@ with Client(host=__HOST, port=__PORT, namespace=__NAMESPACE) as plc:
     response = plc.write(itemList=__ITEMS)
 
 ```
+
+# wpsopcxml.py
+add custom algorithm wpsopcxml.py to read opc tags from wps and write simple logic for grid control
