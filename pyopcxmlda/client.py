@@ -28,11 +28,11 @@ class Client:
     def __init__(self, host:str, port:int=9500, namespace:str="ns0"):
         self.ipAddress = host
         self.port = port
-        self.url = f"http://{self.ipAddress}:{self.port}/?wsdl"
+        self.url = f"http://{self.ipAddress}:{self.port}/opcdagateway.asmx"
         self.session = requests.Session()
         self.itemList = []
         self.namespace = namespace
-        self.headers = const.HEADERS_SOAP
+        self.headers = const.HEADERS
         self.timeout = 5
         self.backoff = 5
 
@@ -59,9 +59,9 @@ class Client:
             header(str): header string
         """
 
-        ns = self.namespace if not namespace else namespace
-        header = const.ENVELOPE_OPEN.format(ns=ns)
-        header += const.ENVELOPE_HEADER
+        # ns = self.namespace if not namespace else namespace
+        header = const.XML_VERSION
+        header += const.ENVELOPE_OPEN
         header += const.ENVELOPE_BODY_OPEN
 
         return header
@@ -416,11 +416,11 @@ class Client:
             itemName = tag.itemName
             itemPath = tag.itemPath
             items += (
-                f'<{ns}:Items '
+                f'<Items '
                 f'ItemPath="{itemPath}" '
                 f'ItemName="{itemName}" '
-                f'ClientItemHandle="{itemName}" '
-                f'></{ns}:Items>'
+                f'ClientItemHandle=""'
+                f'/>'
             )
         return items
 
@@ -442,9 +442,11 @@ class Client:
 
         ns = self.namespace if not namespace else namespace
         payload = self._buildEncapsulationHeader(namespace=ns)
-        payload += f"<{ns}:Read><{ns}:ItemList>"
+        payload += f"<Read xmlns={const.READ_XMLNS}>"
+        payload += f"{const.READ_OPTIONS}"
+        payload += f"<ItemList MaxAge='1000'>"
         payload += self._buildReadItems(itemList=itemList, namespace=ns)
-        payload += f"</{ns}:ItemList></{ns}:Read>"
+        payload += f"</ItemList></Read>"
         payload += self._buildEncapsulationFooter()
         return payload
 
@@ -856,11 +858,11 @@ class Client:
         ns = self.namespace if not namespace else namespace
         items = ""
         for item in itemList:
-            items += (f'<{ns}:Items ClientItemHandle="{item.itemName}" '
-                        f'ItemPath="{item.itemPath}" ItemName="{item.itemName}" '
-                        f'ValueTypeQualifier="xsd:{item.type}">'
-                        f'<Value xsi:Type="xsd:{item.type}">{item.value}</Value></{ns}:Items>'
-                    )
+            items += (f'<Items ValueTypeQualifier="xsd:{item.type}" '
+                    f'ItemPath="{item.itemPath}" ItemName="{item.itemName}" '
+                    f'ClientItemHandle="">'
+                    f'<Value xsi:type="xsd:{item.type}">{item.value}</Value></Items>'
+                )
         return items
 
 
@@ -882,9 +884,11 @@ class Client:
 
         ns = self.namespace if not namespace else namespace
         payload = self._buildEncapsulationHeader(namespace=ns)
-        payload += f"<{ns}:Write><{ns}:ItemList>"
+        payload += f'<Write ReturnValuesOnReply="false" xmlns={const.READ_XMLNS}>'
+        payload += f'{const.WRITE_OPTIONS}'
+        payload += f'<ItemList>'
         payload += self._buildWriteItems(itemList=itemList, namespace=ns)
-        payload += f"</{ns}:ItemList></{ns}:Write>"
+        payload += f'</ItemList></Write>'
         payload += self._buildEncapsulationFooter()
         return payload
 
